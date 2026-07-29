@@ -1,0 +1,40 @@
+import { useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import OutletDetailCard from '../components/OutletDetail';
+
+export default function OutletDetailPage({ outlets, updateOutlet }) {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const outlet = useMemo(() => outlets.find((item) => String(item.id) === id), [id, outlets]);
+
+  if (!outlet) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-10 text-center">
+        <p className="text-lg text-slate-400">This outlet could not be found.</p>
+        <button onClick={() => navigate('/')} className="mt-4 rounded-xl bg-cyan-500 px-4 py-2 font-semibold text-slate-950">
+          Back home
+        </button>
+      </div>
+    );
+  }
+
+  const handleReportQueue = (outletId, status) => {
+    const queueMap = { low: 3, medium: 8, high: 15 };
+    updateOutlet(outletId, {
+      queue_status: status,
+      queue_count: queueMap[status],
+      est_wait_minutes: status === 'low' ? 10 : status === 'medium' ? 22 : 36,
+      last_updated: 1,
+    });
+  };
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      <button onClick={() => navigate('/')} className="mb-4 rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300">
+        ← Back to list
+      </button>
+      <OutletDetailCard outlet={outlet} onReportQueue={handleReportQueue} />
+    </div>
+  );
+}
