@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import OutletDetailCard from '../components/OutletDetail';
+import { supabase } from '../lib/supabaseClient';
 
-export default function OutletDetailPage({ outlets, updateOutlet }) {
+export default function OutletDetailPage({ outlets, updateOutlet, refetch }) {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const outlet = useMemo(() => outlets.find((item) => String(item.id) === id), [id, outlets]);
 
   if (!outlet) {
@@ -19,20 +19,34 @@ export default function OutletDetailPage({ outlets, updateOutlet }) {
     );
   }
 
-  const handleReportQueue = (outletId, status) => {
+  const handleReportQueue = async (outletId, status) => {
+    // Optimistic update so the UI feels instant
     const queueMap = { low: 3, medium: 8, high: 15 };
     updateOutlet(outletId, {
       queue_status: status,
       queue_count: queueMap[status],
       est_wait_minutes: status === 'low' ? 10 : status === 'medium' ? 22 : 36,
-      last_updated: 1,
     });
+
+    // Real insert into Supabase
+    const { error } = await supabase.from('queue_reports').insert({
+      outlet_id: outletId,
+      queue_level: status,
+    });
+
+    if (error) {
+      console.error('Failed to report queue:', error.message);
+      return;
+    }
+
+    // Refresh from source of truth (also triggers for other connected users via realtime)
+    if (refetch) refetch();
   };
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <button onClick={() => navigate('/')} className="mb-4 rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300">
-        ← Back to list
+        ← Back
       </button>
       <OutletDetailCard outlet={outlet} onReportQueue={handleReportQueue} />
     </div>

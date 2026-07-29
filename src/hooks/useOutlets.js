@@ -1,18 +1,86 @@
-import { useMemo, useState } from 'react';
-import mockOutlets from '../data/mockOutlets';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
 const sortOptions = {
   queue: (a, b) => {
-    const ranking = { low: 0, medium: 1, high: 2 };
+    const ranking = { low: 0, medium: 1, high: 2, unknown: 3 };
     return ranking[a.queue_status] - ranking[b.queue_status];
   },
-  distance: (a, b) => a.distance_km - b.distance_km,
+  distance: (a, b) => (a.distance_km || 0) - (b.distance_km || 0),
 };
+
+const THIRTY_MIN_MS = 30 * 60 * 1000;
 
 export function useOutlets() {
   const [sortBy, setSortBy] = useState('queue');
   const [filters, setFilters] = useState({ openNow: false, queueStatus: 'all' });
-  const [outlets, setOutlets] = useState(mockOutlets);
+  const [outlets, setOutlets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchOutlets = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    // 1. Get all outlets
+    const { data: outletsData, error: outletsError } = await supabase
+      .from('outlets')
+      .select('*');
+
+    if (outletsError) {
+      setError(outletsError.message);
+      setLoading(false);
+      return;
+    }
+
+    // 2. Get recent queue reports (last 30 min) for all outlets
+    const cutoff = new Date(Date.now() - THIRTY_MIN_MS).toISOString();
+    const { data: reportsData, error: reportsError } = await supabase
+      .from('queue_reports')
+      .select('*')
+      .gte('reported_at', cutoff)
+      .order('reported_at', { ascending: false });
+
+    if (reportsError) {
+      setError(reportsError.message);
+      setLoading(false);
+      return;
+    }
+
+    // 3. Merge: attach the most recent report's queue_level to each outlet
+    const merged = outletsData.map((outlet) => {
+      const latestReport = reportsData.find((r) => r.outlet_id === outlet.id);
+      return {
+        ...outlet,
+        queue_status: latestReport ? latestReport.queue_level : 'unknown',
+        last_updated: latestReport ? latestReport.reported_at : null,
+        distance_km: outlet.distance_km ?? 0, // placeholder until real geolocation added
+      };
+    });
+
+    setOutlets(merged);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchOutlets();
+
+    // Realtime subscription: refetch whenever a new queue report is inserted
+    const channel = supabase
+      .channel('queue_reports_changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'queue_reports' },
+        () => {
+          fetchOutlets();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchOutlets]);
 
   const filteredOutlets = useMemo(() => {
     const normalized = outlets.filter((outlet) => {
@@ -20,10 +88,10 @@ export function useOutlets() {
       if (filters.queueStatus !== 'all' && outlet.queue_status !== filters.queueStatus) return false;
       return true;
     });
-
     return [...normalized].sort(sortOptions[sortBy] || sortOptions.queue);
   }, [filters, outlets, sortBy]);
 
+  // Kept for compatibility, but real updates now go through Supabase inserts
   const updateOutlet = (id, updates) => {
     setOutlets((current) => current.map((item) => (item.id === id ? { ...item, ...updates } : item)));
   };
@@ -35,5 +103,8 @@ export function useOutlets() {
     filters,
     setFilters,
     updateOutlet,
+    loading,
+    error,
+    refetch: fetchOutlets,
   };
 }

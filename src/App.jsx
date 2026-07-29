@@ -4,7 +4,7 @@ import OutletDetailPage from './pages/OutletDetail';
 import { useOutlets } from './hooks/useOutlets';
 
 export default function App() {
-  const { outlets, sortBy, setSortBy, filters, setFilters, updateOutlet } = useOutlets();
+  const { outlets, sortBy, setSortBy, filters, setFilters, updateOutlet, refetch, loading, error } = useOutlets();
 
   return (
     <BrowserRouter>
@@ -23,7 +23,7 @@ export default function App() {
         />
         <Route
           path="/outlets/:id"
-          element={<OutletDetailPage outlets={outlets} updateOutlet={updateOutlet} />}
+          element={<OutletDetailPage outlets={outlets} updateOutlet={updateOutlet} refetch={refetch} />}
         />
       </Routes>
     </BrowserRouter>
