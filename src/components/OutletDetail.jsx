@@ -96,7 +96,7 @@ export default function OutletDetail({ outlet, onReportQueue }) {
       <ReportQueueModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmit={(status) => onReportQueue(outlet.id, status)}
+        onSubmit={(status, count) => onReportQueue(outlet.id, status, count)}
       />
     </div>
   );

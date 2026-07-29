@@ -57,8 +57,8 @@ export function useOutlets() {
     queue_status: status,
     last_updated: latestReport ? latestReport.reported_at : null,
     distance_km: outlet.distance_km ?? 0,
-    queue_count: queueMap[status],
-    est_wait_minutes: status === 'low' ? 10 : status === 'medium' ? 22 : status === 'high' ? 36 : 0,
+    queue_count: latestReport?.queue_count ?? 0,
+    est_wait_minutes: latestReport?.queue_count ? latestReport.queue_count * 5 : 0,
     hourly_trend: outlet.hourly_trend ?? Array.from({ length: 24 }, () => Math.floor(Math.random() * 20)),
   };
 });

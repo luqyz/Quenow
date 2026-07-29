@@ -19,29 +19,27 @@ export default function OutletDetailPage({ outlets, updateOutlet, refetch }) {
     );
   }
 
-  const handleReportQueue = async (outletId, status) => {
-    // Optimistic update so the UI feels instant
-    const queueMap = { low: 3, medium: 8, high: 15 };
-    updateOutlet(outletId, {
-      queue_status: status,
-      queue_count: queueMap[status],
-      est_wait_minutes: status === 'low' ? 10 : status === 'medium' ? 22 : 36,
-    });
+  const handleReportQueue = async (outletId, status, queueCount) => {
+  // Optimistic update
+  updateOutlet(outletId, {
+    queue_status: status,
+    queue_count: queueCount,
+    est_wait_minutes: queueCount * 5,
+  });
 
-    // Real insert into Supabase
-    const { error } = await supabase.from('queue_reports').insert({
-      outlet_id: outletId,
-      queue_level: status,
-    });
+  const { error } = await supabase.from('queue_reports').insert({
+    outlet_id: outletId,
+    queue_level: status,
+    queue_count: queueCount,
+  });
 
-    if (error) {
-      console.error('Failed to report queue:', error.message);
-      return;
-    }
+  if (error) {
+    console.error('Failed to report queue:', error.message);
+    return;
+  }
 
-    // Refresh from source of truth (also triggers for other connected users via realtime)
-    if (refetch) refetch();
-  };
+  if (refetch) refetch();
+};
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
