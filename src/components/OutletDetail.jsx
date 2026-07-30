@@ -16,6 +16,25 @@ const createIcon = (color) =>
     shadowSize: [41, 41],
   });
 
+function formatLastUpdated(timestamp) {
+  if (!timestamp) return 'No data yet';
+
+  const reportedTime = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now - reportedTime;
+  const diffMins = Math.floor(diffMs / 60000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} min ago`;
+
+  return reportedTime.toLocaleString('en-MY', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function OutletDetail({ outlet, onReportQueue }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -57,7 +76,9 @@ export default function OutletDetail({ outlet, onReportQueue }) {
           >
             Report queue
           </button>
-          <span className="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-400">Last updated {outlet.last_updated} min ago</span>
+          <span className="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-400">
+            Last updated: {formatLastUpdated(outlet.last_updated)}
+          </span>
         </div>
       </div>
 
