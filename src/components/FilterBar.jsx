@@ -12,6 +12,21 @@ export default function FilterBar({ filters, setFilters, sortBy, setSortBy }) {
       </label>
 
       <label className="text-sm text-slate-300">
+        <span className="mr-2">Brand</span>
+        <select
+          value={filters.brand}
+          onChange={(event) => setFilters((current) => ({ ...current, brand: event.target.value }))}
+          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+        >
+          <option value="all">All brands</option>
+          <option value="Shabuyaki">Shabuyaki</option>
+          <option value="Sukiya">Sukiya</option>
+          <option value="Samurai Yakiniku">Samurai Yakiniku</option>
+          <option value="BBQ Town">BBQ Town</option>
+        </select>
+      </label>
+
+      <label className="text-sm text-slate-300">
         <span className="mr-2">Queue</span>
         <select
           value={filters.queueStatus}

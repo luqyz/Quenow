@@ -13,7 +13,7 @@ const THIRTY_MIN_MS = 30 * 60 * 1000;
 
 export function useOutlets() {
   const [sortBy, setSortBy] = useState('queue');
-  const [filters, setFilters] = useState({ openNow: false, queueStatus: 'all' });
+  const [filters, setFilters] = useState({ openNow: false, queueStatus: 'all', brand: 'all' });
   const [outlets, setOutlets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -88,13 +88,14 @@ export function useOutlets() {
   }, [fetchOutlets]);
 
   const filteredOutlets = useMemo(() => {
-    const normalized = outlets.filter((outlet) => {
-      if (filters.openNow && outlet.queue_status === 'high') return false;
-      if (filters.queueStatus !== 'all' && outlet.queue_status !== filters.queueStatus) return false;
-      return true;
-    });
-    return [...normalized].sort(sortOptions[sortBy] || sortOptions.queue);
-  }, [filters, outlets, sortBy]);
+  const normalized = outlets.filter((outlet) => {
+    if (filters.openNow && outlet.queue_status === 'high') return false;
+    if (filters.queueStatus !== 'all' && outlet.queue_status !== filters.queueStatus) return false;
+    if (filters.brand !== 'all' && outlet.brand !== filters.brand) return false;
+    return true;
+  });
+  return [...normalized].sort(sortOptions[sortBy] || sortOptions.queue);
+}, [filters, outlets, sortBy]);
 
   // Kept for compatibility, but real updates now go through Supabase inserts
   const updateOutlet = (id, updates) => {
