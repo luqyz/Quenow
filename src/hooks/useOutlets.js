@@ -11,6 +11,22 @@ const sortOptions = {
 
 const THIRTY_MIN_MS = 30 * 60 * 1000;
 
+// NEW: simulate queue decreasing over time (1 group served every 5 min)
+function calculateDecayedQueue(report) {
+  if (!report || !report.queue_count) return { count: 0, wait: 0 };
+
+  const reportedTime = new Date(report.reported_at).getTime();
+  const now = Date.now();
+  const minutesElapsed = Math.floor((now - reportedTime) / 60000);
+  const peopleServed = Math.floor(minutesElapsed / 5);
+
+  const remainingCount = Math.max(report.queue_count - peopleServed, 0);
+  return {
+    count: remainingCount,
+    wait: remainingCount * 5,
+  };
+}
+
 export function useOutlets() {
   const [sortBy, setSortBy] = useState('queue');
   const [filters, setFilters] = useState({ openNow: false, queueStatus: 'all', brand: 'all' });
@@ -47,21 +63,23 @@ export function useOutlets() {
       return;
     }
 
-    // 3. Merge: attach the most recent report's queue_level to each outlet
+    // 3. Merge: attach the most recent report's queue_level to each outlet,
+    //    with queue count "decaying" over time to simulate live updates
     const merged = outletsData.map((outlet) => {
-  const latestReport = reportsData.find((r) => r.outlet_id === outlet.id);
-  const queueMap = { low: 3, medium: 8, high: 15, unknown: 0 };
-  const status = latestReport ? latestReport.queue_level : 'unknown';
-  return {
-    ...outlet,
-    queue_status: status,
-    last_updated: latestReport ? latestReport.reported_at : null,
-    distance_km: outlet.distance_km ?? 0,
-    queue_count: latestReport?.queue_count ?? 0,
-    est_wait_minutes: latestReport?.queue_count ? latestReport.queue_count * 5 : 0,
-    hourly_trend: outlet.hourly_trend ?? Array.from({ length: 24 }, () => Math.floor(Math.random() * 20)),
-  };
-});
+      const latestReport = reportsData.find((r) => r.outlet_id === outlet.id);
+      const status = latestReport ? latestReport.queue_level : 'unknown';
+      const { count: decayedCount, wait: decayedWait } = calculateDecayedQueue(latestReport);
+
+      return {
+        ...outlet,
+        queue_status: decayedCount === 0 ? 'unknown' : status,
+        last_updated: latestReport ? latestReport.reported_at : null,
+        distance_km: outlet.distance_km ?? 0,
+        queue_count: decayedCount,
+        est_wait_minutes: decayedWait,
+        hourly_trend: outlet.hourly_trend ?? Array.from({ length: 24 }, () => Math.floor(Math.random() * 20)),
+      };
+    });
 
     setOutlets(merged);
     setLoading(false);
@@ -82,20 +100,26 @@ export function useOutlets() {
       )
       .subscribe();
 
+    // NEW: refresh every minute so queue count "decays" automatically
+    const decayInterval = setInterval(() => {
+      fetchOutlets();
+    }, 60000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(decayInterval);
     };
   }, [fetchOutlets]);
 
   const filteredOutlets = useMemo(() => {
-  const normalized = outlets.filter((outlet) => {
-    if (filters.openNow && outlet.queue_status === 'high') return false;
-    if (filters.queueStatus !== 'all' && outlet.queue_status !== filters.queueStatus) return false;
-    if (filters.brand !== 'all' && outlet.brand !== filters.brand) return false;
-    return true;
-  });
-  return [...normalized].sort(sortOptions[sortBy] || sortOptions.queue);
-}, [filters, outlets, sortBy]);
+    const normalized = outlets.filter((outlet) => {
+      if (filters.openNow && outlet.queue_status === 'high') return false;
+      if (filters.queueStatus !== 'all' && outlet.queue_status !== filters.queueStatus) return false;
+      if (filters.brand !== 'all' && outlet.brand !== filters.brand) return false;
+      return true;
+    });
+    return [...normalized].sort(sortOptions[sortBy] || sortOptions.queue);
+  }, [filters, outlets, sortBy]);
 
   // Kept for compatibility, but real updates now go through Supabase inserts
   const updateOutlet = (id, updates) => {
