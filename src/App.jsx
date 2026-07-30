@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Welcome from './pages/Welcome';
 import Home from './pages/Home';
 import OutletDetailPage from './pages/OutletDetail';
 import { useOutlets } from './hooks/useOutlets';
@@ -9,8 +10,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<Welcome />} />
         <Route
-          path="/"
+          path="/outlets"
           element={
             <Home
               outlets={outlets}

@@ -12,9 +12,9 @@ export default function OutletDetailPage({ outlets, updateOutlet, refetch }) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-10 text-center">
         <p className="text-lg text-slate-400">This outlet could not be found.</p>
-        <button onClick={() => navigate('/')} className="mt-4 rounded-xl bg-cyan-500 px-4 py-2 font-semibold text-slate-950">
-          Back home
-        </button>
+        <button onClick={() => navigate('/outlets')} className="mt-4 rounded-xl bg-cyan-500 px-4 py-2 font-semibold text-slate-950">
+        Back home
+      </button>
       </div>
     );
   }
@@ -43,7 +43,7 @@ export default function OutletDetailPage({ outlets, updateOutlet, refetch }) {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <button onClick={() => navigate('/')} className="mb-4 rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300">
+      <button onClick={() => navigate('/outlets')} className="mb-4 rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300">
         ← Back
       </button>
       <OutletDetailCard outlet={outlet} onReportQueue={handleReportQueue} />
