@@ -31,7 +31,7 @@ export default function OutletCard({ outlet }) {
         <QueueBadge status={outlet.queue_status} />
       </div>
       <div className="mt-4 flex items-center justify-between text-sm text-slate-300">
-        <span>{outlet.distance_km.toFixed(1)} km away</span>
+        <span>{outlet.distance_km != null ? `${outlet.distance_km.toFixed(1)} km away` : 'Distance unknown'}</span>
         <span>{outlet.est_wait_minutes} min wait</span>
       </div>
       <div className="mt-4 flex items-center justify-between text-sm text-slate-400">
